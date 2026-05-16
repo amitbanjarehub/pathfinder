@@ -1,0 +1,539 @@
+<div class="min-h-screen bg-gray-100 dark:bg-zinc-900 p-4" x-data="{ showRegisterModal: false, activeLikertIndex: 0 }"
+    x-on:open-submit-modal.window="showRegisterModal = true">
+
+    <div class="max-w-8xl mx-auto">
+
+        <!-- HEADER -->
+        @if ($currentQuestion->question_type !== 'likert')
+            <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-4 mb-4">
+                <div class="flex justify-between items-center mb-6"
+                    @if ($timeRemaining !== null) wire:poll.1s="checkTime" @endif>
+
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                            {{ $test->title }}
+                        </h2>
+
+                        <p class="text-gray-600 dark:text-gray-400">
+                            {{ $allSections[$currentSectionIndex]->title }}
+
+                            @if ($allSections[$currentSectionIndex]->parts->count() > 1)
+                                <span class="text-gray-400 mx-2">|</span>
+                                {{ $allSections[$currentSectionIndex]->parts[$currentPartIndex]->title }}
+                            @endif
+                        </p>
+                    </div>
+
+                    @if ($timeRemaining !== null)
+                        <div
+                            class="flex items-center gap-2 px-6 py-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border">
+                            <x-icon name="clock" class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            <span class="font-mono text-xl font-bold text-indigo-700 dark:text-indigo-300">
+                                {{ gmdate('H:i:s', $timeRemaining) }}
+                            </span>
+                        </div>
+                    @endif
+
+                </div>
+            </div>
+        @endif
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            <!-- ================= QUESTION AREA ================= -->
+            <div
+                class="{{ $currentQuestion && $currentQuestion->question_type === 'likert' ? 'md:col-span-3' : 'md:col-span-2' }}">
+
+                <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6">
+
+                    @if ($currentQuestion)
+
+                        <!-- QUESTION HEADER -->
+                        <div class="mb-8">
+
+
+
+                            <div class="flex items-center justify-between mb-4">
+
+                                @if ($currentQuestion->question_type === 'likert')
+
+
+
+                                    <div class="w-full flex items-center justify-between gap-3 md:gap-6">
+
+                                        <!-- LEFT: PREV BUTTON -->
+                                        <button wire:click="prevLikertBatch" x-on:click="activeLikertIndex = 0"
+                                            class="px-2 py-1 md:px-4 md:py-2 text-xs md:text-sm bg-gray-200 rounded hover:bg-gray-300 whitespace-nowrap">
+                                            ← Prev
+                                        </button>
+
+                                        <!-- RIGHT: PROGRESS BAR -->
+                                        <div class="flex-1 max-w-[140px] sm:max-w-[180px] md:max-w-[220px]">
+
+                                            <div class="w-full bg-gray-200 rounded-full h-2 md:h-3 overflow-hidden">
+                                                <div class="bg-indigo-600 h-2 md:h-3 transition-all"
+                                                    style="width: {{ $this->getLikertProgressPercent() }}%">
+                                                </div>
+                                            </div>
+
+                                            <div
+                                                class="text-center text-[10px] sm:text-xs text-gray-500 mt-1 hidden sm:block">
+                                                Batch {{ $likertCurrentBatch + 1 }} / {{ $likertTotalBatches }}
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                @else
+                                    <!-- NORMAL MCQ HEADER (UNCHANGED) -->
+                                    @if ($currentQuestion->question_type !== 'likert')
+                                        <h3 class="text-xl font-medium text-gray-900 dark:text-gray-100">
+                                            <span class="font-bold text-gray-500 mr-2">
+                                                Q{{ $currentQuestionIndex + 1 }}.
+                                            </span>
+                                            {{ $currentQuestion->question_text }}
+                                        </h3>
+                                    @endif
+
+                                    <div class="flex gap-2">
+                                        <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                                            Section {{ $currentSectionIndex + 1 }}
+                                        </span>
+                                    </div>
+
+                                @endif
+
+                            </div>
+
+                            <!-- IMAGE -->
+                            @if ($currentQuestion->image_path)
+                                <img src="{{ asset('storage/' . $currentQuestion->image_path) }}"
+                                    class="max-w-full rounded max-h-96 mb-4">
+                            @endif
+
+
+                            <!-- ================= MCQ UI (UNCHANGED) ================= -->
+                            @if ($currentQuestion->question_type === 'mcq')
+
+                                <div class="space-y-3">
+                                    @foreach ($currentQuestion->options as $option)
+                                        <label
+                                            class="flex items-start p-4 border rounded-lg cursor-pointer transition-all
+                                            {{ $selectedAnswer == $option->id ? 'border-blue-600 bg-blue-50' : 'border-gray-200' }}">
+
+                                            <input type="radio" wire:model="selectedAnswer"
+                                                value="{{ $option->id }}" class="mt-1">
+
+                                            <div class="ml-3 w-full">
+
+                                                @if ($option->image_path)
+                                                    <img src="{{ asset('storage/' . $option->image_path) }}"
+                                                        class="mb-2 max-h-40">
+                                                @endif
+
+                                                <span class="text-sm">
+                                                    {{ $option->option_text }}
+                                                </span>
+
+                                            </div>
+
+                                        </label>
+                                    @endforeach
+                                </div>
+
+                            @endif
+
+
+                            <!-- ================= LIKERT UI (SEPARATE) ================= -->
+
+
+                            @if ($currentQuestion && $currentQuestion->question_type === 'likert')
+
+                                @php
+                                    $likertQuestions = $this->getCurrentLikertBatch();
+                                @endphp
+
+                                <div class="space-y-8">
+
+                                    @foreach ($likertQuestions as $qIndex => $question)
+                                        {{-- <div class="border-b pb-6"> --}}
+                                        {{-- <div id="likert-q-{{ $question->id }}" class="border-b pb-6"> --}}
+                                        {{-- <div id="likert-q-{{ $question->id }}"
+                                            @if ($qIndex === 0) data-first-question="true" @endif
+                                            class="border-b pb-6"> --}}
+                                        {{-- <div id="likert-q-{{ $question->id }}"
+                                            @if ($qIndex === 0) data-first-question="true" @endif
+                                            x-data="{ index: {{ $qIndex }} }"
+                                            :class="{
+                                                'opacity-100': activeLikertIndex === index,
+                                                'opacity-40 pointer-events-none': activeLikertIndex !== index
+                                            }"
+                                            class="border-b pb-6 transition-all duration-300"> --}}
+
+                                        <div id="likert-q-{{ $question->id }}"
+                                            @if ($qIndex === 0) data-first-question="true" @endif
+                                            x-data="{ index: {{ $qIndex }} }" x-on:click="activeLikertIndex = index+1"
+                                            :class="{
+                                                'opacity-100': activeLikertIndex === index,
+                                                'opacity-40': activeLikertIndex !== index
+                                            }"
+                                            class="border-b pb-6 transition-all duration-300">
+
+                                            <!-- Question Text -->
+                                            <h4 class="text-lg font-medium mb-4">
+                                                {{ $question->question_text }}
+                                            </h4>
+
+                                            <!-- Scale -->
+
+
+
+
+                                            <div class="w-full">
+
+                                                <!-- ================= MOBILE VIEW ================= -->
+                                                <div class="flex flex-col items-center gap-2 md:hidden">
+
+                                                    <!-- CIRCLES (NO SCROLL, FIT SCREEN) -->
+                                                    <div class="flex justify-between items-center w-full px-2 gap-1">
+
+                                                        @for ($i = 1; $i <= 7; $i++)
+                                                            @php
+                                                                $isSelected =
+                                                                    ($answers[$question->id]['option_id'] ?? null) ==
+                                                                    $i;
+
+                                                                // 👇 SMALL SIZE for mobile
+                                                                $sizeClass = match ($i) {
+                                                                    1, 7 => 'w-9 h-9',
+                                                                    2, 6 => 'w-8 h-8',
+                                                                    3, 5 => 'w-7 h-7',
+                                                                    4 => 'w-6 h-6',
+                                                                };
+
+                                                                if ($i <= 3) {
+                                                                    $border = 'border-green-500';
+                                                                    $bgSelected = 'bg-green-500 text-white';
+                                                                } elseif ($i == 4) {
+                                                                    $border = 'border-gray-400';
+                                                                    $bgSelected = 'bg-gray-400 text-white';
+                                                                } else {
+                                                                    $border = 'border-red-500';
+                                                                    $bgSelected = 'bg-red-500 text-white';
+                                                                }
+                                                            @endphp
+
+                                                            <button {{-- wire:click="$set('answers.{{ $question->id }}.option_id', {{ $i }})" --}}
+                                                                wire:click="$set('answers.{{ $question->id }}.option_id', {{ $i }})"
+                                                                {{-- x-on:click="
+    activeLikertIndex = index === activeLikertIndex 
+        ? Math.min(index + 1, {{ count($likertQuestions) - 1 }}) 
+        : index + 1;
+
+    $dispatch('scroll-to-question', { id: 'likert-q-{{ $question->id }}' });
+" --}}
+                                                                x-on:click="
+    activeLikertIndex = Math.min(index + 1, {{ count($likertQuestions) - 1 }});
+
+    $dispatch('scroll-to-question', { id: 'likert-q-{{ $question->id }}' });
+"
+                                                                class="rounded-full border flex items-center justify-center transition-all
+                    {{ $sizeClass }}
+                    {{ $isSelected ? $bgSelected . ' scale-110' : $border }}">
+
+                                                                @if ($isSelected)
+                                                                    ✔
+                                                                @endif
+
+                                                            </button>
+                                                        @endfor
+
+                                                    </div>
+
+                                                    <!-- LABELS BELOW -->
+                                                    <div class="flex justify-between w-full px-2 text-sm font-medium">
+                                                        <span class="text-green-600">Agree</span>
+                                                        <span class="text-red-500">Disagree</span>
+                                                    </div>
+
+                                                </div>
+
+
+                                                <!-- ================= DESKTOP VIEW ================= -->
+                                                <div class="hidden md:flex items-center justify-between gap-2 md:gap-4">
+
+                                                    <!-- LEFT -->
+                                                    <div class="text-green-600 font-medium w-24">
+                                                        Agree
+                                                    </div>
+
+                                                    <!-- CENTER -->
+                                                    <div class="flex-1 flex justify-center">
+                                                        <div class="flex items-center gap-6">
+
+                                                            @for ($i = 1; $i <= 7; $i++)
+                                                                @php
+                                                                    $isSelected =
+                                                                        ($answers[$question->id]['option_id'] ??
+                                                                            null) ==
+                                                                        $i;
+
+                                                                    $sizeClass = match ($i) {
+                                                                        1, 7 => 'w-14 h-14',
+                                                                        2, 6 => 'w-12 h-12',
+                                                                        3, 5 => 'w-10 h-10',
+                                                                        4 => 'w-8 h-8',
+                                                                    };
+
+                                                                    if ($i <= 3) {
+                                                                        $border = 'border-green-500';
+                                                                        $bgSelected = 'bg-green-500 text-white';
+                                                                    } elseif ($i == 4) {
+                                                                        $border = 'border-gray-400';
+                                                                        $bgSelected = 'bg-gray-400 text-white';
+                                                                    } else {
+                                                                        $border = 'border-red-500';
+                                                                        $bgSelected = 'bg-red-500 text-white';
+                                                                    }
+                                                                @endphp
+
+                                                                <button {{-- wire:click="$set('answers.{{ $question->id }}.option_id', {{ $i }})" --}}
+                                                                    wire:click="$set('answers.{{ $question->id }}.option_id', {{ $i }})"
+                                                                    {{-- x-on:click="
+    activeLikertIndex = index === activeLikertIndex 
+        ? Math.min(index + 1, {{ count($likertQuestions) - 1 }}) 
+        : index + 1;
+
+    $dispatch('scroll-to-question', { id: 'likert-q-{{ $question->id }}' });
+" --}}
+                                                                    x-on:click="
+    activeLikertIndex = Math.min(index + 1, {{ count($likertQuestions) - 1 }});
+
+    $dispatch('scroll-to-question', { id: 'likert-q-{{ $question->id }}' });
+"
+                                                                    class="rounded-full border flex items-center justify-center transition-all
+                        {{ $sizeClass }}
+                        {{ $isSelected ? $bgSelected . ' scale-110' : $border }}">
+
+                                                                    @if ($isSelected)
+                                                                        ✔
+                                                                    @endif
+
+                                                                </button>
+                                                            @endfor
+
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- RIGHT -->
+                                                    <div class="text-red-500 font-medium w-24 text-right">
+                                                        Disagree
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    @endforeach
+
+                                    <!-- NEXT BATCH BUTTON -->
+
+
+                                    <div class="text-left mt-6">
+
+                                        @if ($likertCurrentBatch === $likertTotalBatches - 1)
+                                            <!-- ✅ LAST BATCH → SHOW RESULT BUTTON -->
+                                            <button wire:click="submitTest"
+                                                class="px-6 py-3 bg-purple-600 text-white rounded-full">
+                                                See Result
+                                            </button>
+                                        @else
+                                            <!-- NORMAL NEXT BUTTON -->
+                                            {{-- <button wire:click="nextLikertBatch"
+                                                class="px-6 py-3 bg-indigo-600 text-white rounded-full">
+                                                Next →
+                                            </button> --}}
+                                            <button wire:click="nextLikertBatch"
+                                                x-on:click="
+        activeLikertIndex = 0;
+        $dispatch('scroll-to-first-question')
+    "
+                                                class="px-6 py-3 bg-indigo-600 text-white rounded-full">
+                                                Next →
+                                            </button>
+                                        @endif
+
+                                    </div>
+
+                                </div>
+
+                            @endif
+
+                        </div>
+
+
+                        <!-- ================= NAVIGATION ================= -->
+
+                        @if ($currentQuestion->question_type !== 'likert')
+
+                            <!-- MCQ NAVIGATION (UNCHANGED) -->
+                            <div class="flex flex-wrap gap-3 border-t pt-6">
+
+                                <button wire:click="saveAndNext"
+                                    class="px-6 py-3 bg-indigo-600 text-white rounded-full">
+                                    Save & Next
+                                </button>
+
+                                <button wire:click="skip" class="px-6 py-3 bg-red-600 text-white rounded-full">
+                                    Skip
+                                </button>
+
+                                <button wire:click="markForReview"
+                                    class="px-6 py-3 bg-blue-600 text-white rounded-full">
+                                    Review
+                                </button>
+
+                                @if ($currentQuestionIndex === $totalQuestions - 1)
+                                    <button wire:click="submitTest"
+                                        class="px-6 py-3 bg-purple-600 text-white rounded-full ml-auto">
+                                        Submit
+                                    </button>
+                                @endif
+
+                            </div>
+
+                        @endif
+
+                    @endif
+
+                </div>
+
+            </div>
+
+
+            <!-- ================= PROGRESS PANEL (HIDE FOR LIKERT OPTIONAL) ================= -->
+            @if ($currentQuestion && $currentQuestion->question_type !== 'likert')
+
+                <div class="md:col-span-1">
+                    <div class="bg-white dark:bg-zinc-800 rounded-lg shadow p-6 sticky top-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Progress</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                            {{ $allSections[$currentSectionIndex]->title }}
+                            @if ($allSections[$currentSectionIndex]->parts->count() > 1)
+                                - {{ $allSections[$currentSectionIndex]->parts[$currentPartIndex]->title }}
+                            @endif
+                        </p>
+
+                        <div class="mb-4 space-y-2 text-sm">
+                            <div class="flex items-center">
+                                <span class="w-6 h-6 bg-green-500 rounded mr-2"></span>
+                                <span class="text-gray-700 dark:text-gray-300">Answered</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-6 h-6 bg-blue-500 rounded mr-2"></span>
+                                <span class="text-gray-700 dark:text-gray-300">Marked for Review</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-6 h-6 bg-red-500 rounded mr-2"></span>
+                                <span class="text-gray-700 dark:text-gray-300">Skipped</span>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded mr-2"></span>
+                                <span class="text-gray-700 dark:text-gray-300">Not Visited</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            @foreach ($allQuestions as $index => $question)
+                                @if ($index >= $sectionStartIndex && $index <= $sectionEndIndex)
+                                    @php
+                                        $status = $answers[$question->id]['status'] ?? 'not_visited';
+                                        $bgColor = match ($status) {
+                                            'answered' => 'bg-green-500 hover:bg-green-600 text-white',
+                                            'review' => 'bg-blue-500 hover:bg-blue-600 text-white',
+                                            'skipped' => 'bg-red-500 hover:bg-red-600 text-white',
+                                            default
+                                                => 'bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300',
+                                        };
+                                        $current = $index === $currentQuestionIndex;
+                                    @endphp
+                                    <button wire:click="goToQuestion({{ $index }})"
+                                        class="w-[50px] h-[50px] flex items-center justify-center rounded-full font-medium text-sm transition-all {{ $bgColor }} {{ $current ? 'ring-4 ring-yellow-400 ring-offset-2 dark:ring-offset-zinc-800' : '' }}">
+                                        {{ $index + 1 }}
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+            @endif
+
+        </div>
+
+    </div>
+
+    <!-- ================= MODAL ================= -->
+    <div x-show="showRegisterModal" x-transition
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+
+        <div class="bg-white p-6 rounded w-full max-w-md">
+
+            <button @click="showRegisterModal = false" class="float-right">✕</button>
+
+            <h2 class="text-lg font-bold mb-4 text-center">
+                Please Register to Submit Test
+            </h2>
+
+            @include('livewire.auth.register-form')
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+    window.addEventListener('open-submit-modal', (event) => {
+        console.log('Answers:', event.detail.answers);
+    });
+</script>
+
+<script>
+    window.addEventListener('scroll-to-question', (event) => {
+        const el = document.getElementById(event.detail.id);
+
+        if (el) {
+            // thoda upar offset ke liye
+            const yOffset = -20;
+
+            const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+            window.scrollTo({
+                top: y,
+                behavior: 'smooth'
+            });
+        }
+    });
+</script>
+
+<script>
+    window.addEventListener('scroll-to-first-question', () => {
+
+        setTimeout(() => {
+            const el = document.querySelector('[data-first-question="true"]');
+
+            if (el) {
+                const yOffset = -20;
+                const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+                window.scrollTo({
+                    top: y,
+                    behavior: 'smooth'
+                });
+            }
+        }, 150); // wait for Livewire DOM update
+    });
+</script>
