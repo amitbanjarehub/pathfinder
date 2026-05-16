@@ -149,21 +149,19 @@
                                                     </span>
                                                 </a>
 
+                                                <a href="{{ route('career.library') }}"
+                                                    class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50 transition duration-200">
+
+                                                    <span class="material-symbols-rounded text-accent text-[20px]">
+                                                       article
+                                                    </span>
+
+                                                    <span class="text-[13px] font-medium text-gray-700">
+                                                        Career Library
+                                                    </span>
+                                                </a>
+
                                                
-
-                                            </div>
-
-                                        </div>
-
-                                         {{-- Career Library --}}
-                                        <div>
-
-                                            <h3 class="text-[11px] font-bold text-accent uppercase tracking-[2px] mb-2">
-                                                Career Library
-                                            </h3>
-
-                                            <div class="space-y-1">
-
                                                 <a href="{{ route('parenting.community') }}"
                                                     class="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50 transition duration-200">
 
@@ -188,11 +186,11 @@
                                                     </span>
                                                 </a>
 
-                                                
-
                                             </div>
 
                                         </div>
+
+                                        
 
                                         {{-- Plan & Prepare --}}
                                         <div>
