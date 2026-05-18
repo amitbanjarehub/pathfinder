@@ -1,10 +1,29 @@
 <?php
 
 use App\Http\Controllers\AssessmentSignupController;
+use App\Http\Controllers\CounsellorController;
+use App\Http\Controllers\JoinInternController;
+use App\Http\Controllers\JoinTeamController;
 use App\Http\Controllers\WhatsAppOtpController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
+
+// Counsellor application routes
+Route::get('/certificate', [CounsellorController::class, 'showForm'])
+    ->name('certificate.form');
+
+Route::post('/join-team/apply', [JoinTeamController::class, 'store'])
+    ->name('join.team.apply');
+
+Route::post('/counsellor/apply', [CounsellorController::class, 'store'])
+    ->name('counsellor.apply');
+// Route::get('/certificate', function () {
+//     return view('resources.certificate');
+// })->name('certificate');
+
+Route::post('/join-intern/apply', [JoinInternController::class, 'store'])
+    ->name('join.intern.apply');
 
 Route::get('/', function () {
     return view('home');
@@ -22,6 +41,11 @@ Route::get('/career-articles', function () {
 Route::get('/career-library', function () {
     return view('resources.career-library');
 })->name('career.library');
+
+// PARTNERSHIP & OPPORTUNITIES
+Route::get('/counsellor-certification', function () {
+    return view('counsellor-certification');
+})->name('counsellor.certification');
 
 Route::get('/parenting-community', function () {
     return view('resources.parenting-community');
