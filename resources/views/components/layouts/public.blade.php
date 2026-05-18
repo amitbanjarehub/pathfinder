@@ -77,7 +77,7 @@
                         class="text-sm font-medium text-white hover:text-kraft transition-colors">ABOUT</a>
                     <a href="{{ route('services') }}#services"
                         class="text-sm font-medium text-white hover:text-kraft transition-colors">SERVICES</a> 
-                        <a href="{{ route('home.new') }}#services"
+                        <a href="{{ route('career.new') }}#services"
                     class="block text-sm font-medium text-white hover:text-kraft transition-colors">CAREER</a>
                     <a href="{{ route('process') }}#process"
                         class="text-sm font-medium text-white hover:text-kraft transition-colors">PROCESS</a>

@@ -34,6 +34,7 @@ class User extends Authenticatable
         'mobile_verified',
         'small_pdf',
         'full_pdf',
+        'querry',
     ];
 
     /**

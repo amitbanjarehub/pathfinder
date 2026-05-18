@@ -1,17 +1,29 @@
 <?php
 
 use App\Http\Controllers\AssessmentSignupController;
+use App\Http\Controllers\CareerController;
 use App\Http\Controllers\CounsellorController;
+use App\Http\Controllers\JoinFranchiseController;
 use App\Http\Controllers\JoinInternController;
 use App\Http\Controllers\JoinTeamController;
+use App\Http\Controllers\TieupEnquiryController;
 use App\Http\Controllers\WhatsAppOtpController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Features;
 use Livewire\Volt\Volt;
 
+Route::post('/join-franchise/apply', [JoinFranchiseController::class, 'store'])
+    ->name('join.franchise.apply');
+
+Route::post('/tieup-enquiry-submit', [TieupEnquiryController::class, 'store'])
+    ->name('tieup.enquiry.submit');
+
 // Counsellor application routes
 Route::get('/certificate', [CounsellorController::class, 'showForm'])
     ->name('certificate.form');
+
+Route::post('/career-submit', [CareerController::class, 'store'])
+    ->name('career.submit');
 
 Route::post('/join-team/apply', [JoinTeamController::class, 'store'])
     ->name('join.team.apply');
@@ -140,6 +152,10 @@ Route::get('/test-result/{attempt}', function ($attemptId) {
 Route::get('/home', function () {
     return view('home');
 })->name('home.new');
+
+Route::get('/career', function () {
+    return view('career');
+})->name('career.new');
 
 Route::get('/about', function () {
     return view('about');
